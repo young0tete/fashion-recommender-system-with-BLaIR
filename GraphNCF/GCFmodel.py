@@ -86,16 +86,17 @@ class GNNLayer(Module):
 
 class GCF(Module):
 
-    def __init__(self,userNum,itemNum,rt,embedSize=100,layers=[100,80,50],useCuda=True):
+    def __init__(self,train,embedSize=100,layers=[100,80,50],useCuda=True):
 
         super(GCF,self).__init__()
         self.useCuda = useCuda
-        self.userNum = userNum
-        self.itemNum = itemNum
-        self.uEmbd = nn.Embedding(userNum,embedSize)
-        self.iEmbd = nn.Embedding(itemNum,embedSize)
+
+        self.userNum = train.userNum
+        self.itemNum = train.itemNum
+        self.uEmbd = nn.Embedding(self.userNum,embedSize)
+        self.iEmbd = nn.Embedding(self.itemNum,embedSize)
         self.GNNlayers = torch.nn.ModuleList()
-        self.LaplacianMat = self.buildLaplacianMat(rt) # sparse format
+        self.LaplacianMat = self.buildLaplacianMat(train.uIdInt, train.iIdInt, train.rt) # sparse format
         self.leakyRelu = nn.LeakyReLU()
         self.selfLoop = self.getSparseEye(self.userNum+self.itemNum)
 
@@ -111,12 +112,12 @@ class GCF(Module):
         val = torch.FloatTensor([1]*num)
         return torch.sparse.FloatTensor(i,val)
 
-    def buildLaplacianMat(self,rt):
+    def buildLaplacianMat(self, userId, itemId, rt):
 
-        rt_item = rt['itemId'] + self.userNum
-        uiMat = coo_matrix((rt['rating'], (rt['userId'], rt['itemId'])))
+        rt_item = userId + self.userNum
+        uiMat = coo_matrix((rt, (userId, itemId)))
 
-        uiMat_upperPart = coo_matrix((rt['rating'], (rt['userId'], rt_item)))
+        uiMat_upperPart = coo_matrix((rt, (userId, rt_item)))
         uiMat = uiMat.transpose()
         uiMat.resize((self.itemNum, self.userNum + self.itemNum))
 

@@ -1,25 +1,22 @@
 import torch
 from torch import nn as nn
-from toyDataset.loaddata import load100KRatings
+from toyDataset.loaddata import loadTrainData, loadTestData
 from scipy.sparse import coo_matrix
 import pandas as pd
 import numpy as np
 from numpy import diag
 from GraphNCF.GCFmodel import GCF
 from torch.utils.data import DataLoader
-from GraphNCF.dataPreprosessing import ML1K
+from GraphNCF.dataPreprosessing import PreprocessedData
 from torch.utils.data import random_split
 from torch.optim import Adam
 from torch.nn import MSELoss
 from GraphNCF.GCFmodel import SVD
 from GraphNCF.GCFmodel import NCF
 
-rt = load100KRatings()
-userNum = rt['userId'].max()
-itemNum = rt['itemId'].max()
+raw_train = loadTrainData()
+raw_test = loadTestData()
 
-rt['userId'] = rt['userId'] - 1
-rt['itemId'] = rt['itemId'] - 1
 #
 # rtIt = rt['itemId'] + userNum
 # uiMat = coo_matrix((rt['rating'],(rt['userId'],rt['itemId'])))
@@ -45,16 +42,17 @@ rt['itemId'] = rt['itemId'] - 1
 para = {
     'epoch':60,
     'lr':0.01,
-    'batch_size':2048,
-    'train':0.8
+    'batch_size':2048
+    # solesie: Train/Test data is statically fixed, so no use more.
+    # 'train':0.8
 }
 
-ds = ML1K(rt)
-trainLen = int(para['train']*len(ds))
-train,test = random_split(ds,[trainLen,len(ds)-trainLen])
+train = PreprocessedData(raw_train)
+test = PreprocessedData(raw_test)
+
 dl = DataLoader(train,batch_size=para['batch_size'],shuffle=True,pin_memory=True)
 
-model = GCF(userNum, itemNum, rt, 80, layers=[80,80,]).cuda()
+model = GCF(train, 80, layers=[80, 80, ]).cuda()
 # model = SVD(userNum,itemNum,50).cuda()
 # model = NCF(userNum,itemNum,64,layers=[128,64,32,16,8]).cuda()
 optim = Adam(model.parameters(), lr=para['lr'],weight_decay=0.001)
@@ -75,7 +73,5 @@ for i in range(para['epoch']):
 testdl = DataLoader(test,batch_size=len(test),)
 for data in testdl:
     prediction = model(data[0].cuda(),data[1].cuda())
-
-loss = lossfn(data[2].float().cuda(),prediction)
-print(loss) # MSEloss
-
+    loss = lossfn(data[2].float().cuda(),prediction)
+    print(loss) # MSEloss
