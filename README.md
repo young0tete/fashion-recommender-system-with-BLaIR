@@ -1,2 +1,3 @@
 # fashion-recommender-system-with-BLaIR
-fashion recommender system based on text data
+CSE4200 Introduction to Recommender System Term project
+
