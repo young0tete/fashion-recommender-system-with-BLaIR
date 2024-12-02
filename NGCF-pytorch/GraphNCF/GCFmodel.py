@@ -86,17 +86,17 @@ class GNNLayer(Module):
 
 class GCF(Module):
 
-    def __init__(self,train,embedSize=100,layers=[100,80,50],useCuda=True):
+    def __init__(self,userNum,itemNum,train,embedSize=100,layers=[100,80,50],useCuda=True):
 
         super(GCF,self).__init__()
         self.useCuda = useCuda
 
-        self.userNum = train.userNum
-        self.itemNum = train.itemNum
+        self.userNum = userNum
+        self.itemNum = itemNum
         self.uEmbd = nn.Embedding(self.userNum,embedSize)
         self.iEmbd = nn.Embedding(self.itemNum,embedSize)
         self.GNNlayers = torch.nn.ModuleList()
-        self.LaplacianMat = self.buildLaplacianMat(train.uIdInt, train.iIdInt, train.rt) # sparse format
+        self.LaplacianMat = self.buildLaplacianMat(train.uIndices, train.iIndices, train.rt) # sparse format
         self.leakyRelu = nn.LeakyReLU()
         self.selfLoop = self.getSparseEye(self.userNum+self.itemNum)
 
@@ -112,12 +112,12 @@ class GCF(Module):
         val = torch.FloatTensor([1]*num)
         return torch.sparse.FloatTensor(i,val)
 
-    def buildLaplacianMat(self, userId, itemId, rt):
+    def buildLaplacianMat(self, uIndices, iIndices, rt):
 
-        rt_item = userId + self.userNum
-        uiMat = coo_matrix((rt, (userId, itemId)))
+        rt_item = iIndices + self.userNum
+        uiMat = coo_matrix((rt, (uIndices, iIndices)))
 
-        uiMat_upperPart = coo_matrix((rt, (userId, rt_item)))
+        uiMat_upperPart = coo_matrix((rt, (uIndices, rt_item)))
         uiMat = uiMat.transpose()
         uiMat.resize((self.itemNum, self.userNum + self.itemNum))
 
@@ -172,13 +172,13 @@ class GCF(Module):
 
         return prediction
 
-if __name__ == '__main__':
-    from toyDataset.loaddata import load100KRatings
-
-    rt = load100KRatings()
-    userNum = rt['userId'].max()
-    itemNum = rt['itemId'].max()
-
-    rt['userId'] = rt['userId'] - 1
-    rt['itemId'] = rt['itemId'] - 1
-    gcf = GCF(userNum,itemNum,rt)
+# if __name__ == '__main__':
+#     from toyDataset.loaddata import load100KRatings
+#
+#     rt = load100KRatings()
+#     userNum = rt['userId'].max()
+#     itemNum = rt['itemId'].max()
+#
+#     rt['userId'] = rt['userId'] - 1
+#     rt['itemId'] = rt['itemId'] - 1
+#     gcf = GCF(userNum,itemNum,rt)
