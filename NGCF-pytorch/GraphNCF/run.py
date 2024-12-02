@@ -14,6 +14,7 @@ from torch.nn import MSELoss
 from GraphNCF.GCFmodel import SVD
 from GraphNCF.GCFmodel import NCF
 from GraphNCF.metrics import testOneUser
+from toyDataset.savedata import saveOutput, saveStatistics
 
 raw_train = loadTrainData()
 raw_test = loadTestData()
@@ -48,12 +49,13 @@ for i in range(para['epoch']):
 
 # solesie: test
 KS = [5, 10, 20, 100]
-result = {'recall': np.zeros(len(KS)), 'ap': np.zeros(len(KS))}
+output = {}
+statistics = {'recall': np.zeros(len(KS)), 'ap': np.zeros(len(KS))}
 for u in range(pp.userNum):
     truthPairs = torch.tensor(pp.preprocessedTest.adjList[u]).float().cuda()
 
     # solesie: It is possible that there is no way to evaluate the user
-    # because of the very sparse data.
+    # because of the sparsity.
     if truthPairs.numel() == 0:
         continue
 
@@ -68,15 +70,28 @@ for u in range(pp.userNum):
 
     metrics = testOneUser(predictionPairs, truthPairs, KS)
 
-    for k in result.keys():
-        result[k] += metrics[k] / pp.userNum
+    for s in statistics.keys():
+        statistics[s] += metrics[s] / pp.userNum
 
     print("user:", u, ": ", metrics)
 
-print(result)
+    # solesie: save topKResults for BLaIR
+    topK = 1000
+    topKPairs = predictionPairs[torch.topk(predictionPairs[:, 1], topK).indices].cpu()
+    value = {}
+    for j in range(topK):
+        iStr = pp.restoreItem(topKPairs[j,0].item())
+        rt = topKPairs[j,1].item()
+        value[j] = (iStr, rt)
+    output[pp.restoreUser(u)] = value
 
+print(statistics)
 testdl = DataLoader(pp.preprocessedTest,batch_size=len(pp.preprocessedTest),)
 for data in testdl:
     prediction = model(data[0].cuda(),data[1].cuda())
     loss = lossfn(data[2].float().cuda(),prediction)
     print(loss) # MSEloss
+
+# solesie: save results
+saveOutput(output)
+saveStatistics(statistics)

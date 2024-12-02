@@ -61,3 +61,9 @@ class Preprocessor:
 
     def restore(self, uIdx, iIdx):
         return self.__uInt2Str[uIdx], self.__iInt2Str[iIdx]
+
+    def restoreUser(self, uIdx):
+        return self.__uInt2Str[uIdx]
+
+    def restoreItem(self, iIdx):
+        return self.__iInt2Str[iIdx]

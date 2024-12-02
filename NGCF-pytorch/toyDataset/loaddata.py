@@ -25,10 +25,10 @@ data_dir = path.join(path.dirname(__file__), 'AmazonFashion')
 
 
 def loadTrainData():
-    df = pd.read_table(path.join(data_dir, 'new_graph_train.csv'), sep=',', header=0)
+    df = pd.read_table(path.join(data_dir, 'graph_train.csv'), sep=',', header=0)
     return df
 
 
 def loadTestData():
-    df = pd.read_table(path.join(data_dir, 'new_graph_test.csv'), sep=',', header=0)
+    df = pd.read_table(path.join(data_dir, 'graph_test.csv'), sep=',', header=0)
     return df
