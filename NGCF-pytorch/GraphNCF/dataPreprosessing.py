@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+from numpy.f2py.auxfuncs import throw_error
 from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
@@ -37,7 +38,7 @@ class PreprocessedData(Dataset):
         return self.uIndices[i], self.iIndices[i], self.rt[i]
 
 class Preprocessor:
-    def __init__(self, raw_train, raw_test):
+    def __init__(self, raw_train, raw_test, useRating, useSentiment):
         # solesie: user_id and item_id are String format, so convert them to 0-based index.
         uIdStr = pd.concat([raw_train['user_id'], raw_test['user_id']], axis=0, ignore_index=True)
         iIdStr = pd.concat([raw_train['item_id'], raw_test['item_id']], axis=0, ignore_index=True)
@@ -50,12 +51,29 @@ class Preprocessor:
         self.__iStr2Int = {item: idx for idx, item in enumerate(iset)}
         self.__iInt2Str = {idx: item for idx, item in enumerate(iset)}
 
+        trainRating = np.array(raw_train['rating'])
+        trainSentiment = np.array(raw_train['sentiment']) + 1
+        testRating = np.array(raw_test['rating'])
+        testSentiment = np.array(raw_test['sentiment']) + 1
+        if useRating and ~useSentiment:
+            trainRt = trainRating
+            testRt = testRating
+        elif useSentiment and ~useRating:
+            trainRt = trainSentiment
+            testRt = testSentiment
+        elif useRating and useSentiment:
+            sentimentWeight = 2.
+            trainRt = trainRating + trainSentiment * sentimentWeight
+            testRt = testRating + testSentiment * sentimentWeight
+        else:
+            raise ValueError("Invalid condition: Neither ratings nor sentiment are used")
+
         self.preprocessedTrain = PreprocessedData(np.array([self.__uStr2Int[user] for user in raw_train['user_id']])
                                                   , np.array([self.__iStr2Int[item] for item in raw_train['item_id']])
-                                                  , np.array(np.array(raw_train['rating'])))
+                                                  , trainRt)
         self.preprocessedTest = PreprocessedData(np.array([self.__uStr2Int[user] for user in raw_test['user_id']])
                                                  , np.array([self.__iStr2Int[item] for item in raw_test['item_id']])
-                                                 , np.array(np.array(raw_test['rating'])))
+                                                 , testRt)
         self.userNum = len(uset)
         self.itemNum = len(iset)
 

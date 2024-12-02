@@ -16,9 +16,6 @@ from GraphNCF.GCFmodel import NCF
 from GraphNCF.metrics import testOneUser
 from toyDataset.savedata import saveOutput, saveStatistics
 
-raw_train = loadTrainData()
-raw_test = loadTestData()
-
 para = {
     'epoch':60,
     'lr':0.01,
@@ -27,7 +24,12 @@ para = {
     # 'train':0.8
 }
 
-pp = Preprocessor(raw_train,raw_test)
+raw_train = loadTrainData()
+raw_test = loadTestData()
+useRating = False
+useSentiment = True
+
+pp = Preprocessor(raw_train,raw_test, useRating, useSentiment)
 
 model = GCF(pp.userNum, pp.itemNum, pp.preprocessedTrain, 64, layers=[64, 64, 64]).cuda()
 # model = SVD(userNum,itemNum,50).cuda()
@@ -93,5 +95,5 @@ for data in testdl:
     print(loss) # MSEloss
 
 # solesie: save results
-saveOutput(output)
-saveStatistics(statistics)
+saveOutput(output, useRating, useSentiment)
+saveStatistics(statistics, useRating, useSentiment)
