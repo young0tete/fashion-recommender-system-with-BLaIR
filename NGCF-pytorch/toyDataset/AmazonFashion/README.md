@@ -2,7 +2,7 @@
 https://amazon-reviews-2023.github.io/
 
 # Description
-Uses _Amazon Fashion_ category above the link and the users interacted with more than 4 items are extracted.
+Uses the Amazon Fashion category above the link, and extracts users who interacted with more than 3 items and items that were interacted with by more than 2 users.
 
 80% of data is used to train(i.e., graph_train.csv) and 20% of data is used to test(i.e., graph_test.csv).
 
